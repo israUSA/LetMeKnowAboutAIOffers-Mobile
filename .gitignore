@@ -26,3 +26,6 @@ Thumbs.db
 
 # Logs internos del compilador de Kotlin
 .kotlin/
+
+# Volcados de Git Bash en Windows
+*.stackdump
