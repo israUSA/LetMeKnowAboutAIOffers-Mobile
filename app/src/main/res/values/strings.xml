@@ -1,4 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">AI Offers</string>
+
+    <!-- Header -->
+    <string name="alerts_button_description">Avisos</string>
+
+    <!-- Hero -->
+    <string name="hero_title_prefix">Ofertas de IA </string>
+    <string name="hero_title_gradient">verificadas</string>
+    <string name="hero_subtitle">Herramientas, créditos y recursos gratuitos para estudiantes, todo en un solo lugar.</string>
+    <string name="search_field_placeholder">Buscar por empresa u oferta…</string>
+    <plurals name="hero_badge_verified_count">
+        <item quantity="one">%d oferta verificada</item>
+        <item quantity="other">%d ofertas verificadas</item>
+    </plurals>
+
+    <!-- Filtros -->
+    <string name="filter_tab_all">Todas</string>
+    <string name="filter_tab_permanent">Permanentes</string>
+    <string name="filter_tab_limited">Por tiempo limitado</string>
+
+    <!-- Estado de error -->
+    <string name="error_missing_config_title">Falta configuración</string>
+    <string name="error_missing_config_body">Faltan estas claves en local.properties: %1$s. Agregalas y volvé a compilar la app.</string>
+    <string name="error_network_title">Sin conexión</string>
+    <string name="error_network_body">No pudimos conectarnos a internet. Revisá tu conexión e intentá de nuevo.</string>
+    <string name="error_http_title">El servidor no respondió bien</string>
+    <string name="error_http_body">Recibimos un error del servidor (código %1$d). Probá de nuevo en unos minutos.</string>
+    <string name="error_malformed_title">Respuesta inesperada</string>
+    <string name="error_malformed_body">Los datos que llegaron no tienen el formato esperado. Probá de nuevo más tarde.</string>
+
+    <!-- Estado vacío -->
+    <string name="empty_state_title">Sin resultados</string>
+    <string name="empty_state_body">No encontramos ofertas para esta búsqueda o filtro. Probá con otro término o cambiá de tab.</string>
+
+    <!-- Footer -->
+    <string name="footer_disclaimer">Las ofertas pueden cambiar sin aviso. Verificá siempre los detalles en el sitio oficial de cada empresa.</string>
 </resources>
