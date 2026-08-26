@@ -6,7 +6,9 @@
     <string name="alerts_button_description">Avisos</string>
 
     <!-- Hero -->
-    <string name="hero_title_prefix">Ofertas de IA </string>
+    <!-- Entrecomillado a propósito: sin las comillas, aapt recorta el espacio final y el
+         título queda pegado como "Ofertas de IAverificadas". -->
+    <string name="hero_title_prefix">"Ofertas de IA "</string>
     <string name="hero_title_gradient">verificadas</string>
     <string name="hero_subtitle">Herramientas, créditos y recursos gratuitos para estudiantes, todo en un solo lugar.</string>
     <string name="search_field_placeholder">Buscar por empresa u oferta…</string>

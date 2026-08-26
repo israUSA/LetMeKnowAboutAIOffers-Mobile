@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -78,7 +79,9 @@ fun Hero(
 
 @Composable
 private fun heroTitle() = buildAnnotatedString {
-    append(stringResource(R.string.hero_title_prefix))
+    withStyle(SpanStyle(color = Color.White)){
+        append(stringResource(R.string.hero_title_prefix))
+    }
     withStyle(SpanStyle(brush = TextGradient)) {
         append(stringResource(R.string.hero_title_gradient))
     }
