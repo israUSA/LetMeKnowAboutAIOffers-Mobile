@@ -102,15 +102,23 @@ ui/theme/                  Color, StateColors, Type, Dimens, Motion, Glass, Them
 
 ## Build
 
-Usá el skill `gradle-run` para toda corrida de Gradle.
+Corré Gradle **directo**, desde la raíz de tu worktree:
 
 ```bash
 ./gradlew assembleDebug
 ./gradlew testDebugUnitTest
 ```
 
+**No uses el skill `gradle-run` en este proyecto.** Su `gradle_run.py` exige un "managed
+root" dentro del directorio temporal del SO y acá falla con
+`managed root must be inside the OS temporary directory`.
+
 El JDK 21 se resuelve solo vía `gradle/gradle-daemon-jvm.properties`. No configures
-`JAVA_HOME` ni `org.gradle.java.home`.
+`JAVA_HOME` ni `org.gradle.java.home` — y si tu shell trae `JAVA_HOME` apuntando a un JDK 11,
+hacé `unset JAVA_HOME` antes de correr: AGP 9 necesita 17+.
+
+La primera compilación tarda varios minutos. Si tu herramienta de shell corta antes,
+lanzala en background y esperá el resultado; no la des por fallada.
 
 `local.properties` puede estar sin las claves de Supabase. Eso es **correcto**: la app debe
 compilar igual y mostrar la pantalla de error de configuración faltante.
@@ -129,4 +137,5 @@ consultá explícitamente los que apliquen a tu tarea:
 - `kotlin-concurrency-and-flow` — cancelación y modelado de Flows
 - `kotlin-control-flow` — `when` exhaustivo sobre tipos sellados
 - `kotlin-api-design` — tipos de dominio y fronteras
-- `gradle-run` — corridas de Gradle con salida compacta
+
+(`gradle-run` está instalado pero **no funciona en este proyecto** — ver la sección Build.)
