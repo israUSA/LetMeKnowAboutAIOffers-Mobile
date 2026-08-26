@@ -1,6 +1,7 @@
 package com.letmeknow.aioffers.feature.promos.components
 
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.StartOffset
 import androidx.compose.animation.core.StartOffsetType
 import androidx.compose.animation.core.infiniteRepeatable

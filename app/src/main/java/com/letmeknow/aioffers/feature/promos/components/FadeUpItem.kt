@@ -2,7 +2,7 @@ package com.letmeknow.aioffers.feature.promos.components
 
 import androidx.compose.animation.core.animateDp
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.rememberTransition
+import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
@@ -42,7 +42,9 @@ fun FadeUpItem(
         visible = true
     }
 
-    val transition = rememberTransition(targetState = visible, label = "fadeUp")
+    // `rememberTransition` recibe un TransitionState ya construido; para animar hacia un valor
+    // objetivo la API correcta es `updateTransition`.
+    val transition = updateTransition(targetState = visible, label = "fadeUp")
     val alpha by transition.animateFloat(
         transitionSpec = { tween(durationMillis = duration, easing = Motion.EaseOutBack) },
         label = "fadeUpAlpha",
