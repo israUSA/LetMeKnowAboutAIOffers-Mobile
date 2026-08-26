@@ -1,0 +1,25 @@
+# --- Secretos y configuración local (el repo es PÚBLICO: nada de esto se commitea) ---
+local.properties
+secrets.properties
+.env
+*.jks
+*.keystore
+google-services.json
+
+# --- Build ---
+*.iml
+.gradle/
+build/
+captures/
+.cxx/
+out/
+release/
+
+# --- Android Studio / IntelliJ ---
+.idea/
+*.hprof
+.navigation/
+
+# --- Sistema ---
+.DS_Store
+Thumbs.db
