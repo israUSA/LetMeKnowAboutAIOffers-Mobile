@@ -1,8 +1,11 @@
 package com.letmeknow.aioffers.feature.promos.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -10,12 +13,15 @@ import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.SettingsSuggest
 import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -25,6 +31,7 @@ import com.letmeknow.aioffers.R
 import com.letmeknow.aioffers.feature.promos.ErrorKind
 import com.letmeknow.aioffers.ui.theme.AppColors
 import com.letmeknow.aioffers.ui.theme.AppTheme
+import com.letmeknow.aioffers.ui.theme.BrandGradient
 import com.letmeknow.aioffers.ui.theme.Dimens
 import com.letmeknow.aioffers.ui.theme.glassSurface
 import dev.chrisbanes.haze.HazeState
@@ -36,7 +43,12 @@ import dev.chrisbanes.haze.rememberHazeState
  * `local.properties`; `Network`, `Http` y `MalformedPayload` llevan mensajes propios.
  */
 @Composable
-fun ErrorState(kind: ErrorKind, hazeState: HazeState, modifier: Modifier = Modifier) {
+fun ErrorState(
+    kind: ErrorKind,
+    hazeState: HazeState,
+    modifier: Modifier = Modifier,
+    onRetry: (() -> Unit)? = null,
+) {
     val (icon, title, body) = errorContent(kind)
 
     Column(
@@ -64,6 +76,25 @@ fun ErrorState(kind: ErrorKind, hazeState: HazeState, modifier: Modifier = Modif
             color = AppColors.OnBackgroundMuted,
             textAlign = TextAlign.Center,
         )
+
+        // MissingConfig no ofrece reintento: no se arregla tocando un botón, sino editando
+        // `local.properties` y recompilando. Un botón ahí solo repetiría el mismo error.
+        if (onRetry != null && kind !is ErrorKind.MissingConfig) {
+            Button(
+                onClick = onRetry,
+                colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
+                modifier = Modifier
+                    .heightIn(min = Dimens.MinTouchTarget)
+                    .background(BrandGradient, Dimens.ShapePill),
+            ) {
+                Text(
+                    text = stringResource(R.string.error_retry),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = AppColors.OnBackground,
+                )
+            }
+        }
     }
 }
 
