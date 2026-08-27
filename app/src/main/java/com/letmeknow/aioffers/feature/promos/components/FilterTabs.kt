@@ -1,6 +1,7 @@
 package com.letmeknow.aioffers.feature.promos.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
@@ -14,6 +15,7 @@ import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,8 +48,11 @@ fun FilterTabs(
     hazeState: HazeState,
     modifier: Modifier = Modifier,
 ) {
+    // En ancho de teléfono las tres pills no entran: sin scroll, la última se comprime, su
+    // texto se parte en dos líneas y estira toda la fila hacia abajo. Con scroll horizontal
+    // las etiquetas se mantienen completas y siguen siendo alcanzables deslizando.
     Row(
-        modifier = modifier,
+        modifier = modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         FilterTab(
@@ -112,6 +117,10 @@ private fun FilterTab(
             text = "$label ($count)",
             style = MaterialTheme.typography.labelLarge,
             color = if (isSelected) AppColors.OnBackground else AppColors.OnBackgroundMuted,
+            // Sin esto la etiqueta se parte en dos líneas cuando el ancho aprieta y la pill
+            // deja de ser una pill.
+            maxLines = 1,
+            softWrap = false,
         )
     }
 }
