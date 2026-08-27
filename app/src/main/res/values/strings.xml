@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">AI Offers</string>
+    <string name="app_name">Student Offers</string>
 
     <!-- Header -->
+    <!-- Wordmark partido en dos strings: "LetMeKnow" lleva el gradiente de marca y
+         "AboutStudentOffers" va en color de texto normal. No reusar app_name, que es corto
+         a propósito para el launcher y no representa el wordmark completo. -->
+    <string name="wordmark_brand">LetMeKnow</string>
+    <string name="wordmark_rest">AboutStudentOffers</string>
     <string name="alerts_button_description">Avisos</string>
 
     <!-- Hero -->

@@ -26,7 +26,7 @@ tocar a la vez, y sacarlos de la ecuación es lo que hace seguro el paralelismo:
 - `gradle/libs.versions.toml` y `gradle/` en general
 - `build.gradle.kts` (raíz) y `app/build.gradle.kts`
 - `app/src/main/AndroidManifest.xml`
-- `app/src/main/java/com/letmeknow/aioffers/ui/theme/**`
+- `app/src/main/java/com/letmeknow/studentoffers/ui/theme/**`
 - `AGENTS.md`, `CLAUDE.md`, y los cuatro `.md` de especificación
 
 **Si te falta una dependencia, un permiso o un token de tema: escalá, no edites.**
@@ -81,7 +81,7 @@ devuelve `Valid` o `Missing`, y `Missing` se rutea a
 - **Toda** animación consulta `LocalReduceMotion` y se salta si está activo. Usá
   `Motion.durationOrInstant(...)` en vez de las constantes crudas.
 
-## Estructura de paquetes (`com.letmeknow.aioffers`)
+## Estructura de paquetes (`com.letmeknow.studentoffers`)
 
 ```
 App.kt                     Application, crea AppContainer
