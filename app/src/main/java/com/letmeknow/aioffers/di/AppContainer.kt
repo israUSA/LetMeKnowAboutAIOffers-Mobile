@@ -19,6 +19,8 @@ import com.letmeknow.aioffers.data.remote.PromosRemoteDataSource
 import com.letmeknow.aioffers.data.remote.SupabaseAuthInterceptor
 import com.letmeknow.aioffers.domain.ExpirationRules
 import com.letmeknow.aioffers.feature.promos.PromosViewModel
+import com.letmeknow.aioffers.notifications.DefaultNotifier
+import com.letmeknow.aioffers.notifications.Notifier
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -101,6 +103,29 @@ class AppContainer(
     }
 
     /**
+     * Devuelve el repositorio solo si hay configuración válida.
+     *
+     * Existe para los consumidores que corren **fuera** de la UI —los workers de
+     * notificaciones y el `BootReceiver`—, que no pasaron por el chequeo de configuración que
+     * hace `PromosViewModel`. Sin esto tendrían que tocar [promoRepository] a ciegas y
+     * reventarían con `AppConfig.Missing` en un lugar donde no hay pantalla que mostrar.
+     */
+    fun promoRepositoryOrNull(): PromoRepository? =
+        if (config is AppConfig.Valid) promoRepository else null
+
+    /**
+     * Frontera de notificaciones. Perezoso como todo lo demás: construirlo no toca WorkManager
+     * ni el repositorio, así que crear el contenedor sigue sin poder fallar.
+     */
+    val notifier: Notifier by lazy {
+        DefaultNotifier(
+            context = context.applicationContext,
+            clock = clock,
+            repositoryProvider = ::promoRepositoryOrNull,
+        )
+    }
+
+    /**
      * Fábrica del ViewModel de la pantalla principal.
      *
      * El repositorio se pasa como lambda, no como instancia: construirlo acá lo evaluaría
@@ -113,6 +138,7 @@ class AppContainer(
                     config = config,
                     rules = expirationRules,
                     repositoryProvider = { promoRepository },
+                    notifierProvider = { notifier },
                 )
             }
         }
@@ -122,8 +148,6 @@ class AppContainer(
         "Se intentó usar la red con configuración ausente. Con AppConfig.Missing la pantalla " +
             "debe mostrar ErrorKind.MissingConfig sin construir nada de esta cadena."
     }
-
-    // TODO(feat/notifications): notifier y scheduler de WorkManager.
 
     private companion object {
         const val TIMEOUT_SECONDS = 20L

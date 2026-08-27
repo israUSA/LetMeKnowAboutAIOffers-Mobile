@@ -37,6 +37,35 @@
     <string name="empty_state_title">Sin resultados</string>
     <string name="empty_state_body">No encontramos ofertas para esta búsqueda o filtro. Probá con otro término o cambiá de tab.</string>
 
+    <!-- Canales de notificación -->
+    <string name="channel_claim_reminders_name">Recordatorios de reclamo</string>
+    <string name="channel_claim_reminders_description">Avisos de que una oferta que seguís está por vencer y todavía no la reclamaste.</string>
+    <string name="channel_new_promos_name">Ofertas nuevas</string>
+    <string name="channel_new_promos_description">Avisos cuando aparecen ofertas que no estaban la última vez que miramos.</string>
+
+    <!-- Notificaciones -->
+    <string name="notification_claim_reminder_title">Tu oferta de %1$s está por vencer</string>
+    <string name="notification_claim_reminder_three_days">Quedan 3 días para reclamar «%1$s».</string>
+    <string name="notification_claim_reminder_one_day">Último día para reclamar «%1$s».</string>
+    <string name="notification_new_promos_title">Ofertas nuevas</string>
+    <string name="notification_new_promos_single">%1$s sumó una oferta: «%2$s».</string>
+    <plurals name="notification_new_promos_body">
+        <item quantity="one">Hay %d oferta nueva en el catálogo.</item>
+        <item quantity="other">Hay %d ofertas nuevas en el catálogo.</item>
+    </plurals>
+
+    <!-- Avisos (bottom sheet) -->
+    <string name="alerts_sheet_title">Tus avisos</string>
+    <string name="alerts_sheet_subtitle">Te avisamos 3 días y 1 día antes de que venza cada oferta que sigas.</string>
+    <string name="alerts_empty_title">Todavía no seguís ninguna oferta</string>
+    <string name="alerts_empty_body">Tocá la campana de una tarjeta para que te avisemos antes de que venza.</string>
+    <string name="alerts_unfollow">Dejar de seguir «%1$s»</string>
+    <string name="alerts_status_claimed">Reclamada</string>
+    <string name="alerts_status_pending">Sin reclamar</string>
+    <string name="alerts_permission_title">Los avisos están desactivados</string>
+    <string name="alerts_permission_body">Seguimos guardando las ofertas que marcás, pero sin permiso de notificaciones no podemos avisarte.</string>
+    <string name="alerts_permission_action">Activar avisos</string>
+
     <!-- Footer -->
     <string name="footer_disclaimer">Las ofertas pueden cambiar sin aviso. Verificá siempre los detalles en el sitio oficial de cada empresa.</string>
 </resources>

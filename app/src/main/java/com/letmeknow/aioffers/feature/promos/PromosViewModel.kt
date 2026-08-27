@@ -10,6 +10,9 @@ import com.letmeknow.aioffers.domain.PromoFilter
 import com.letmeknow.aioffers.domain.PromoSorter
 import com.letmeknow.aioffers.domain.model.ExpirationState
 import com.letmeknow.aioffers.domain.model.Promo
+import com.letmeknow.aioffers.feature.alerts.AlertUiModel
+import com.letmeknow.aioffers.feature.alerts.AlertsUiState
+import com.letmeknow.aioffers.notifications.Notifier
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -21,6 +24,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -45,6 +49,7 @@ class PromosViewModel(
     private val config: AppConfig,
     private val rules: ExpirationRules,
     repositoryProvider: () -> PromoRepository,
+    notifierProvider: () -> Notifier,
 ) : ViewModel() {
 
     /** Entradas que el ViewModel controla. Van juntas para que el estado se arme de un combine. */
@@ -56,6 +61,7 @@ class PromosViewModel(
         val isStale: Boolean = false,
         val error: ErrorKind? = null,
         val isInitialLoad: Boolean = true,
+        val isAlertsOpen: Boolean = false,
     )
 
     private val inputs = MutableStateFlow(Inputs())
@@ -63,6 +69,13 @@ class PromosViewModel(
 
     private val repository: PromoRepository? =
         if (config is AppConfig.Valid) repositoryProvider() else null
+
+    /**
+     * Perezoso por la misma razón que [repository]: con [AppConfig.Missing] no hay pantalla
+     * de datos y no hay nada que programar, así que tampoco hay que construir nada.
+     */
+    private val notifier: Notifier? =
+        if (config is AppConfig.Valid) notifierProvider() else null
 
     /**
      * Ticker de countdown: **uno solo para toda la pantalla**, no uno por tarjeta.
@@ -133,14 +146,47 @@ class PromosViewModel(
     /** Mismo camino que el pull-to-refresh: el botón de la pantalla de error reintenta. */
     fun onRetry() = refresh(initial = true)
 
+    fun onAlertsOpen() = inputs.update { it.copy(isAlertsOpen = true) }
+
+    fun onAlertsDismiss() = inputs.update { it.copy(isAlertsOpen = false) }
+
+    /**
+     * Persistir el seguimiento y programar el aviso son un solo gesto del usuario, así que
+     * van en la misma corrutina y en este orden: primero se guarda la preferencia, que es lo
+     * que el usuario espera que quede aunque el permiso de notificaciones falte.
+     *
+     * Al dejar de seguir se cancela el work pendiente en el acto. Un recordatorio de una
+     * oferta que ya no se sigue no solo es ruido: es work huérfano que sobrevive reinicios.
+     */
     fun onFollowToggle(promoId: Long, followed: Boolean) {
         val repo = repository ?: return
-        viewModelScope.launch { repo.setFollowed(promoId, followed) }
+        val notifier = notifier ?: return
+
+        viewModelScope.launch {
+            repo.setFollowed(promoId, followed)
+
+            if (!followed) {
+                notifier.cancelClaimReminder(promoId)
+                return@launch
+            }
+
+            // Seguir algo ya reclamado no programa nada: el recordatorio existe para avisar
+            // de lo que falta reclamar.
+            if (promoId in repo.claimedIds.first()) return@launch
+            repo.promos.first().firstOrNull { it.id == promoId }
+                ?.let { notifier.scheduleClaimReminder(it) }
+        }
     }
 
+    /** Reclamar apaga el recordatorio: ya no hay nada de qué avisar. */
     fun onClaim(promoId: Long) {
         val repo = repository ?: return
-        viewModelScope.launch { repo.markClaimed(promoId) }
+        val notifier = notifier ?: return
+
+        viewModelScope.launch {
+            repo.markClaimed(promoId)
+            notifier.cancelClaimReminder(promoId)
+        }
     }
 
     private fun refresh(initial: Boolean) {
@@ -209,8 +255,37 @@ class PromosViewModel(
             expandedId = current.expandedId,
             isRefreshing = current.isRefreshing,
             isStale = current.isStale,
+            alerts = AlertsUiState(
+                isOpen = current.isAlertsOpen,
+                alerts = alerts(promos, followed, claimed),
+            ),
         )
     }
+
+    /**
+     * Las ofertas seguidas, sobre el catálogo completo y ordenadas por urgencia igual que la
+     * grilla: la búsqueda y el tab filtran lo que se explora, no lo que el usuario ya marcó.
+     *
+     * La etiqueta se calcula con `formatRelativeDate` y no con `expirationLabel` a propósito:
+     * esta última viene vacía en estado urgente porque en la tarjeta la reemplaza el countdown
+     * en vivo, y en el sheet no hay countdown que la reemplace.
+     */
+    private fun alerts(
+        promos: List<Promo>,
+        followed: Set<Long>,
+        claimed: Set<Long>,
+    ): List<AlertUiModel> =
+        PromoSorter.sortByUrgency(promos.filter { it.id in followed }, rules)
+            .map { promo ->
+                AlertUiModel(
+                    id = promo.id,
+                    company = promo.company,
+                    title = promo.title,
+                    state = rules.getExpirationState(promo),
+                    expirationLabel = rules.formatRelativeDate(promo),
+                    isClaimed = promo.id in claimed,
+                )
+            }
 
     private companion object {
         const val TICK_INTERVAL_MILLIS = 1_000L

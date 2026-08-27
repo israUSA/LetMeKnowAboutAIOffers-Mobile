@@ -38,8 +38,8 @@ import dev.chrisbanes.haze.rememberHazeState
  * Header fijo arriba de la pantalla: logo (ícono con [BrandGradient] + wordmark con
  * [TextGradient]) a la izquierda, botón de campana con punto indicador a la derecha.
  *
- * El botón abre el bottom sheet de avisos, que implementa otro agente en wave 2 — acá
- * [onAlertsClick] queda sin implementación real.
+ * [onAlertsClick] abre el destino de avisos (`feature/alerts`). El punto indicador es fijo:
+ * hoy no hay contador de avisos sin leer que lo condicione.
  */
 @Composable
 fun Header(

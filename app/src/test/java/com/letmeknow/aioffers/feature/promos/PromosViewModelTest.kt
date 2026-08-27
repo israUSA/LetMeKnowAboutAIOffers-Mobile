@@ -7,6 +7,7 @@ import com.letmeknow.aioffers.domain.ExpirationRules
 import com.letmeknow.aioffers.domain.model.ExpirationState
 import com.letmeknow.aioffers.domain.model.Promo
 import com.letmeknow.aioffers.fake.FakeClock
+import com.letmeknow.aioffers.fake.RecordingNotifier
 import com.letmeknow.aioffers.fake.NOW
 import com.letmeknow.aioffers.fake.days
 import com.letmeknow.aioffers.fake.promo
@@ -38,6 +39,7 @@ class PromosViewModelTest {
     private val clock = FakeClock(NOW)
     private val rules = ExpirationRules(clock, ZoneOffset.UTC)
     private val dispatcher = StandardTestDispatcher()
+    private val notifier = RecordingNotifier()
 
     @Before
     fun setUp() {
@@ -85,7 +87,12 @@ class PromosViewModelTest {
     private fun viewModel(
         repository: FakeRepository,
         config: AppConfig = AppConfig.Valid("https://proyecto.supabase.co", "anon"),
-    ) = PromosViewModel(config, rules) { repository }
+    ) = PromosViewModel(
+        config = config,
+        rules = rules,
+        repositoryProvider = { repository },
+        notifierProvider = { notifier },
+    )
 
     /**
      * Suscribe el estado y deja correr lo que ya está agendado.
@@ -115,6 +122,10 @@ class PromosViewModelTest {
             repositoryProvider = {
                 construido = true
                 error("El repositorio no puede construirse sin configuración")
+            },
+            notifierProvider = {
+                construido = true
+                error("El notifier no puede construirse sin configuración")
             },
         )
 
@@ -338,4 +349,129 @@ class PromosViewModelTest {
         // Diez segundos de tiempo virtual y ninguna emisión nueva: no hay ticker encendido.
         assertEquals(hasta, emitidos.size)
     }
+
+    // --- Avisos y recordatorios ---------------------------------------------------------
+
+    @Test
+    fun `seguir una oferta programa su recordatorio`() = runTest(dispatcher) {
+        val oferta = promo(id = 1, expiresAt = NOW.plusSeconds(days(10)))
+        val viewModel = viewModel(FakeRepository(promos = listOf(oferta)))
+        subscribe(viewModel)
+
+        viewModel.onFollowToggle(promoId = 1, followed = true)
+        runCurrent()
+
+        assertEquals(listOf(1L), notifier.scheduled)
+        assertTrue(notifier.cancelled.isEmpty())
+    }
+
+    @Test
+    fun `dejar de seguir cancela el work pendiente`() = runTest(dispatcher) {
+        val oferta = promo(id = 1, expiresAt = NOW.plusSeconds(days(10)))
+        val repository = FakeRepository(promos = listOf(oferta))
+        val viewModel = viewModel(repository)
+        subscribe(viewModel)
+
+        viewModel.onFollowToggle(promoId = 1, followed = true)
+        runCurrent()
+        viewModel.onFollowToggle(promoId = 1, followed = false)
+        runCurrent()
+
+        // Nada de work huérfano: la preferencia se apagó y el aviso también.
+        assertEquals(listOf(1L), notifier.cancelled)
+        assertFalse(viewModel.content().promos.single().isFollowed)
+    }
+
+    @Test
+    fun `reclamar cancela el work pendiente`() = runTest(dispatcher) {
+        val oferta = promo(id = 1, expiresAt = NOW.plusSeconds(days(10)))
+        val viewModel = viewModel(FakeRepository(promos = listOf(oferta)))
+        subscribe(viewModel)
+
+        viewModel.onFollowToggle(promoId = 1, followed = true)
+        runCurrent()
+        viewModel.onClaim(promoId = 1)
+        runCurrent()
+
+        assertEquals(listOf(1L), notifier.cancelled)
+        assertTrue(viewModel.content().promos.single().isClaimed)
+    }
+
+    @Test
+    fun `seguir algo ya reclamado no programa nada`() = runTest(dispatcher) {
+        val oferta = promo(id = 1, expiresAt = NOW.plusSeconds(days(10)))
+        val viewModel = viewModel(FakeRepository(promos = listOf(oferta)))
+        subscribe(viewModel)
+
+        viewModel.onClaim(promoId = 1)
+        runCurrent()
+        notifier.cancelled.clear()
+
+        viewModel.onFollowToggle(promoId = 1, followed = true)
+        runCurrent()
+
+        // El recordatorio existe para avisar de lo que falta reclamar.
+        assertTrue(notifier.scheduled.isEmpty())
+    }
+
+    // --- Destino de avisos --------------------------------------------------------------
+
+    @Test
+    fun `el sheet de avisos arranca cerrado y lo abre la campana del header`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(FakeRepository(promos = listOf(promo(id = 1))))
+            subscribe(viewModel)
+
+            assertFalse(viewModel.content().alerts.isOpen)
+
+            viewModel.onAlertsOpen()
+            runCurrent()
+            assertTrue(viewModel.content().alerts.isOpen)
+
+            viewModel.onAlertsDismiss()
+            runCurrent()
+            assertFalse(viewModel.content().alerts.isOpen)
+        }
+
+    @Test
+    fun `los avisos se calculan sobre el catalogo completo, no sobre el filtro activo`() =
+        runTest(dispatcher) {
+            val repository = FakeRepository(
+                promos = listOf(
+                    promo(id = 1, company = "GitHub", title = "Copilot"),
+                    promo(id = 2, company = "Figma", title = "Education"),
+                ),
+            )
+            val viewModel = viewModel(repository)
+            subscribe(viewModel)
+
+            viewModel.onFollowToggle(promoId = 2, followed = true)
+            runCurrent()
+
+            // La búsqueda deja fuera a Figma de la grilla, pero no de los avisos: lo que el
+            // usuario marcó no puede depender de lo que esté buscando en este momento.
+            viewModel.onQueryChange("GitHub")
+            runCurrent()
+
+            assertEquals(listOf(1L), viewModel.content().promos.map { it.promo.id })
+            assertEquals(listOf(2L), viewModel.content().alerts.alerts.map { it.id })
+        }
+
+    /**
+     * En la grilla el estado urgente deja la etiqueta vacía porque la reemplaza el countdown en
+     * vivo. En el sheet no hay countdown, así que la etiqueta tiene que estar igual.
+     */
+    @Test
+    fun `un aviso urgente lleva etiqueta de vencimiento aunque la tarjeta no la muestre`() =
+        runTest(dispatcher) {
+            val urgente = promo(id = 1, expiresAt = NOW.plusSeconds(days(1)))
+            val viewModel = viewModel(FakeRepository(promos = listOf(urgente)))
+            subscribe(viewModel)
+
+            viewModel.onFollowToggle(promoId = 1, followed = true)
+            runCurrent()
+
+            assertEquals("", viewModel.content().promos.single().expirationLabel)
+            assertEquals("Expira mañana", viewModel.content().alerts.alerts.single().expirationLabel)
+        }
 }
