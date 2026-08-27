@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -90,9 +91,16 @@ fun PromosScreen(
     val reduceMotion = LocalReduceMotion.current
 
     Box(modifier = modifier.fillMaxSize()) {
+        // El aurora va a sangre, por debajo de las barras del sistema: es fondo, no contenido.
         AuroraBackground(hazeState = hazeState, modifier = Modifier.fillMaxSize())
 
-        Column(modifier = Modifier.fillMaxSize()) {
+        // El contenido sí respeta los insets. Sin esto, `enableEdgeToEdge()` deja el header
+        // pisado por la barra de estado — no se nota en el emulador, sí en un teléfono real.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .safeDrawingPadding(),
+        ) {
             Header(
                 hazeState = hazeState,
                 onAlertsClick = onAlertsClick,
