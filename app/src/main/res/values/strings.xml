@@ -31,6 +31,7 @@
     <string name="error_http_body">Recibimos un error del servidor (código %1$d). Probá de nuevo en unos minutos.</string>
     <string name="error_malformed_title">Respuesta inesperada</string>
     <string name="error_malformed_body">Los datos que llegaron no tienen el formato esperado. Probá de nuevo más tarde.</string>
+    <string name="error_retry">Reintentar</string>
 
     <!-- Estado vacío -->
     <string name="empty_state_title">Sin resultados</string>
