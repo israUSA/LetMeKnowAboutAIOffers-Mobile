@@ -2,7 +2,7 @@
 <resources>
     <!-- Tema de arranque. La app es dark-only por diseño, así que el fondo de la ventana ya
          es el color base: evita el flash blanco entre el splash y la primera composición. -->
-    <style name="Theme.LetMeKnowAboutAIOffers" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.LetMeKnowAboutStudentOffers" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/background</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
