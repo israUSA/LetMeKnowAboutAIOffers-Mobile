@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
 import com.letmeknow.aioffers.core.ui.LocalReduceMotion
 import com.letmeknow.aioffers.domain.model.ExpirationState
 import com.letmeknow.aioffers.domain.model.Promo
+import com.letmeknow.aioffers.feature.alerts.AlertsDestination
+import com.letmeknow.aioffers.feature.alerts.rememberNotificationPermission
 import com.letmeknow.aioffers.feature.promos.components.AuroraBackground
 import com.letmeknow.aioffers.feature.promos.components.EmptyState
 import com.letmeknow.aioffers.feature.promos.components.ErrorState
@@ -69,6 +71,11 @@ sealed interface PromosEvent {
 
     /** Reintentar desde la pantalla de error. */
     data object OnRetry : PromosEvent
+
+    /** Campana del header: abrir el destino de avisos. */
+    data object OnAlertsOpen : PromosEvent
+
+    data object OnAlertsDismiss : PromosEvent
 }
 
 /**
@@ -76,19 +83,22 @@ sealed interface PromosEvent {
  * `isRefreshing`; contenedor centrado con ancho máximo [Dimens.MaxContentWidth] y grilla de
  * 1/2/3 columnas según [Dimens.TwoColumnBreakpoint]/[Dimens.ThreeColumnBreakpoint].
  *
- * El bottom sheet de avisos lo implementa otro agente en wave 2: acá [onAlertsClick] queda
- * sin implementación real. Donde iría la tarjeta real hay un placeholder simple
- * (TODO(feat/promo-card)) — el merge lo resuelve el coordinador.
+ * El destino de avisos se monta acá porque su estado (`alerts.isOpen`) es parte del estado de
+ * la pantalla; lo que hay dentro está encapsulado en `AlertsDestination`.
  */
 @Composable
 fun PromosScreen(
     state: PromosUiState,
     onEvent: (PromosEvent) -> Unit,
-    onAlertsClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val hazeState = rememberHazeState()
     val reduceMotion = LocalReduceMotion.current
+
+    // El permiso de notificaciones no puede vivir en el ViewModel: `rememberLauncherForActivityResult`
+    // necesita la composición. Se pide en contexto, en la campana de la tarjeta, nunca al
+    // arrancar la pantalla — por eso acá solo se crea, no se dispara.
+    val notificationPermission = rememberNotificationPermission()
 
     Box(modifier = modifier.fillMaxSize()) {
         // El aurora va a sangre, por debajo de las barras del sistema: es fondo, no contenido.
@@ -103,7 +113,7 @@ fun PromosScreen(
         ) {
             Header(
                 hazeState = hazeState,
-                onAlertsClick = onAlertsClick,
+                onAlertsClick = { onEvent(PromosEvent.OnAlertsOpen) },
                 modifier = Modifier.padding(horizontal = Dimens.ScreenPadding, vertical = 8.dp),
             )
 
@@ -188,10 +198,16 @@ fun PromosScreen(
                                                     onEvent(PromosEvent.OnCardToggle(promo.promo.id))
                                                 },
                                                 onToggleFollow = {
+                                                    val followed = !promo.isFollowed
+                                                    // Marcar una oferta es el momento en que
+                                                    // el permiso tiene un motivo entendible.
+                                                    // Si lo niega, el seguimiento se guarda
+                                                    // igual y no se vuelve a preguntar.
+                                                    if (followed) notificationPermission.requestOnce()
                                                     onEvent(
                                                         PromosEvent.OnFollowToggle(
                                                             id = promo.promo.id,
-                                                            followed = !promo.isFollowed,
+                                                            followed = followed,
                                                         ),
                                                     )
                                                 },
@@ -208,6 +224,14 @@ fun PromosScreen(
                     }
                 }
             }
+        }
+
+        if (state is PromosUiState.Content) {
+            AlertsDestination(
+                state = state.alerts,
+                onDismiss = { onEvent(PromosEvent.OnAlertsDismiss) },
+                onUnfollow = { id -> onEvent(PromosEvent.OnFollowToggle(id = id, followed = false)) },
+            )
         }
     }
 }

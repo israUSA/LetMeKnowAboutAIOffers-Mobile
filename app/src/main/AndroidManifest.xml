@@ -39,6 +39,18 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Tras un reinicio WorkManager restaura sus work, pero los recordatorios se calculan
+             contra `expires_at`: si el dispositivo estuvo días apagado, el plan cambió. El
+             receiver recalcula todo con `Notifier.rescheduleAll()`. -->
+        <receiver
+            android:name=".notifications.BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

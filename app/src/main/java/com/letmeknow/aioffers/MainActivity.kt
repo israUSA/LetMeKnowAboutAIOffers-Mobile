@@ -49,6 +49,8 @@ class MainActivity : ComponentActivity() {
         is PromosEvent.OnFollowToggle -> viewModel.onFollowToggle(event.id, event.followed)
         PromosEvent.OnRefresh -> viewModel.onRefresh()
         PromosEvent.OnRetry -> viewModel.onRetry()
+        PromosEvent.OnAlertsOpen -> viewModel.onAlertsOpen()
+        PromosEvent.OnAlertsDismiss -> viewModel.onAlertsDismiss()
         is PromosEvent.OnClaim -> {
             viewModel.onClaim(event.promo.promo.id)
             openExternal(event.promo.promo.reclaimLink)

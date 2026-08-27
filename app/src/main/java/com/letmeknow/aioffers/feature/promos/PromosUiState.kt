@@ -2,6 +2,7 @@ package com.letmeknow.aioffers.feature.promos
 
 import androidx.compose.runtime.Immutable
 import com.letmeknow.aioffers.domain.model.ExpirationState
+import com.letmeknow.aioffers.feature.alerts.AlertsUiState
 import com.letmeknow.aioffers.domain.model.Promo
 
 /** Tab de filtro. Los contadores se calculan SIEMPRE sobre la lista completa sin filtrar. */
@@ -66,6 +67,13 @@ sealed interface PromosUiState {
         val isRefreshing: Boolean,
         /** Se muestran datos del caché porque el último refresh falló. */
         val isStale: Boolean,
+        /**
+         * El destino de avisos: si está abierto y qué ofertas seguidas muestra.
+         *
+         * Se calcula sobre el catálogo **completo**, no sobre [promos]: lo que el usuario
+         * sigue no puede depender de la búsqueda ni del tab activo.
+         */
+        val alerts: AlertsUiState = AlertsUiState(),
     ) : PromosUiState {
         /**
          * Distinto del estado de error: hay datos, pero la búsqueda o el tab activo no
