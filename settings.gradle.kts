@@ -27,5 +27,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "LetMeKnowAboutAIOffers"
+rootProject.name = "LetMeKnowAboutStudentOffers"
 include(":app")

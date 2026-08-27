@@ -25,11 +25,11 @@ fun localProperty(key: String): String {
 }
 
 android {
-    namespace = "com.letmeknow.aioffers"
+    namespace = "com.letmeknow.studentoffers"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.letmeknow.aioffers"
+        applicationId = "com.letmeknow.studentoffers"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
