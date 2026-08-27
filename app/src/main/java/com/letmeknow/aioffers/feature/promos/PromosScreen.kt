@@ -33,6 +33,7 @@ import com.letmeknow.aioffers.feature.promos.components.FilterTabs
 import com.letmeknow.aioffers.feature.promos.components.Footer
 import com.letmeknow.aioffers.feature.promos.components.Header
 import com.letmeknow.aioffers.feature.promos.components.Hero
+import com.letmeknow.aioffers.feature.promos.components.PromoCard
 import com.letmeknow.aioffers.feature.promos.components.SkeletonCard
 import com.letmeknow.aioffers.ui.theme.AppTheme
 import com.letmeknow.aioffers.ui.theme.Dimens
@@ -40,6 +41,7 @@ import com.letmeknow.aioffers.ui.theme.Motion
 import com.letmeknow.aioffers.ui.theme.glassSurface
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.rememberHazeState
+import java.time.Duration
 import java.time.Instant
 
 /** Cantidad de skeletons a mostrar mientras carga (no hay conteo real todavía). */
@@ -54,6 +56,18 @@ sealed interface PromosEvent {
     data class OnTabSelected(val tab: PromoTab) : PromosEvent
     data object OnRefresh : PromosEvent
     data class OnCardToggle(val id: Long) : PromosEvent
+
+    /** Campana de la tarjeta: seguir o dejar de seguir para recibir avisos. */
+    data class OnFollowToggle(val id: Long, val followed: Boolean) : PromosEvent
+
+    /**
+     * CTA "Reclamar". Lleva el modelo entero y no solo el id porque quien lo maneja necesita
+     * el link externo además de registrar el reclamo.
+     */
+    data class OnClaim(val promo: PromoUiModel) : PromosEvent
+
+    /** Reintentar desde la pantalla de error. */
+    data object OnRetry : PromosEvent
 }
 
 /**
@@ -123,7 +137,13 @@ fun PromosScreen(
                             }
 
                             is PromosUiState.Error -> {
-                                fullWidthItem { ErrorState(kind = state.kind, hazeState = hazeState) }
+                                fullWidthItem {
+                                    ErrorState(
+                                        kind = state.kind,
+                                        hazeState = hazeState,
+                                        onRetry = { onEvent(PromosEvent.OnRetry) },
+                                    )
+                                }
                             }
 
                             is PromosUiState.Content -> {
@@ -152,10 +172,23 @@ fun PromosScreen(
                                         key = { _, promo -> promo.promo.id },
                                     ) { index, promo ->
                                         FadeUpItem(delayMillis = Motion.staggerDelay(index, reduceMotion)) {
-                                            PromoCardPlaceholder(
+                                            PromoCard(
                                                 promo = promo,
+                                                isExpanded = state.expandedId == promo.promo.id,
                                                 hazeState = hazeState,
-                                                onClick = { onEvent(PromosEvent.OnCardToggle(promo.promo.id)) },
+                                                onToggleExpand = {
+                                                    onEvent(PromosEvent.OnCardToggle(promo.promo.id))
+                                                },
+                                                onToggleFollow = {
+                                                    onEvent(
+                                                        PromosEvent.OnFollowToggle(
+                                                            id = promo.promo.id,
+                                                            followed = !promo.isFollowed,
+                                                        ),
+                                                    )
+                                                },
+                                                onClaim = { onEvent(PromosEvent.OnClaim(promo)) },
+                                                remainingSeconds = promo.remainingSecondsOrNull(),
                                             )
                                         }
                                     }
@@ -176,23 +209,17 @@ private fun LazyGridScope.fullWidthItem(content: @Composable () -> Unit) {
 }
 
 /**
- * TODO(feat/promo-card): reemplazar por la tarjeta real (la implementa otro agente en
- * paralelo). Placeholder simple con la info mínima para verificar el layout de la grilla.
+ * Segundos que faltan para el vencimiento, solo para ofertas urgentes.
+ *
+ * Se resuelve acá y no dentro de la tarjeta a propósito: el ViewModel reemite el estado cada
+ * segundo mientras haya al menos una oferta urgente, así que este `Instant.now()` se refresca
+ * con ese único tick en vez de con un ticker por tarjeta visible. Nunca devuelve negativos:
+ * el countdown se queda en cero cuando la fecha ya pasó.
  */
-@Composable
-private fun PromoCardPlaceholder(promo: PromoUiModel, hazeState: HazeState, onClick: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .glassSurface(state = hazeState, shape = Dimens.Shape2xl)
-            .clickable(onClick = onClick)
-            .padding(Dimens.CardPadding),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Text(text = promo.promo.company, style = MaterialTheme.typography.labelSmall)
-        Text(text = promo.promo.title, style = MaterialTheme.typography.titleMedium)
-        Text(text = promo.expirationLabel, style = MaterialTheme.typography.bodySmall)
-    }
+private fun PromoUiModel.remainingSecondsOrNull(): Long? {
+    if (state != ExpirationState.URGENT) return null
+    val expiresAt = promo.expiresAt ?: return null
+    return Duration.between(Instant.now(), expiresAt).seconds.coerceAtLeast(0L)
 }
 
 private fun fakePromo(id: Long, company: String, title: String, permanent: Boolean) = PromoUiModel(
