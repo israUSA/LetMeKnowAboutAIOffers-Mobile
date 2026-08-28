@@ -100,6 +100,9 @@ dependencies {
     implementation(libs.haze)
     implementation(libs.haze.materials)
 
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
+
     testImplementation(libs.junit)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
