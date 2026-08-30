@@ -1,6 +1,5 @@
 package com.letmeknow.studentoffers.feature.promos
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -16,17 +14,21 @@ import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.letmeknow.studentoffers.R
 import com.letmeknow.studentoffers.core.ui.LocalReduceMotion
 import com.letmeknow.studentoffers.domain.model.ExpirationState
 import com.letmeknow.studentoffers.domain.model.Promo
-import com.letmeknow.studentoffers.feature.alerts.AlertsDestination
 import com.letmeknow.studentoffers.feature.alerts.rememberNotificationPermission
 import com.letmeknow.studentoffers.feature.promos.components.AuroraBackground
 import com.letmeknow.studentoffers.feature.promos.components.EmptyState
@@ -41,71 +43,43 @@ import com.letmeknow.studentoffers.feature.promos.components.SkeletonCard
 import com.letmeknow.studentoffers.ui.theme.AppTheme
 import com.letmeknow.studentoffers.ui.theme.Dimens
 import com.letmeknow.studentoffers.ui.theme.Motion
-import com.letmeknow.studentoffers.ui.theme.glassSurface
-import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
 
-/** Cantidad de skeletons a mostrar mientras carga (no hay conteo real todavía). */
 private const val LoadingSkeletonCount = 6
 
-/**
- * Eventos que la pantalla puede emitir hacia el `PromosViewModel` (dueño de query, tab,
- * `expandedId` y refresh). `PromosScreen` es stateless: recibe `(state, onEvent)`.
- */
 sealed interface PromosEvent {
     data class OnQueryChange(val query: String) : PromosEvent
     data class OnTabSelected(val tab: PromoTab) : PromosEvent
     data object OnRefresh : PromosEvent
     data class OnCardToggle(val id: Long) : PromosEvent
-
-    /** Campana de la tarjeta: seguir o dejar de seguir para recibir avisos. */
-    data class OnFollowToggle(val id: Long, val followed: Boolean) : PromosEvent
-
-    /**
-     * CTA "Reclamar". Lleva el modelo entero y no solo el id porque quien lo maneja necesita
-     * el link externo además de registrar el reclamo.
-     */
     data class OnClaim(val promo: PromoUiModel) : PromosEvent
-
-    /** Reintentar desde la pantalla de error. */
     data object OnRetry : PromosEvent
-
-    /** Campana del header: abrir el destino de avisos. */
-    data object OnAlertsOpen : PromosEvent
-
-    data object OnAlertsDismiss : PromosEvent
+    data class OnNotificationsToggle(val enabled: Boolean) : PromosEvent
 }
 
-/**
- * Arma el fondo aurora, header, hero, filtros, grilla/estado y footer. Pull-to-refresh en
- * `isRefreshing`; contenedor centrado con ancho máximo [Dimens.MaxContentWidth] y grilla de
- * 1/2/3 columnas según [Dimens.TwoColumnBreakpoint]/[Dimens.ThreeColumnBreakpoint].
- *
- * El destino de avisos se monta acá porque su estado (`alerts.isOpen`) es parte del estado de
- * la pantalla; lo que hay dentro está encapsulado en `AlertsDestination`.
- */
 @Composable
 fun PromosScreen(
     state: PromosUiState,
+    notificationsEnabled: Boolean,
     onEvent: (PromosEvent) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val hazeState = rememberHazeState()
     val reduceMotion = LocalReduceMotion.current
 
-    // El permiso de notificaciones no puede vivir en el ViewModel: `rememberLauncherForActivityResult`
-    // necesita la composición. Se pide en contexto, en la campana de la tarjeta, nunca al
-    // arrancar la pantalla — por eso acá solo se crea, no se dispara.
     val notificationPermission = rememberNotificationPermission()
 
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val enabledMessage = stringResource(R.string.notifications_enabled_snackbar)
+    val disabledMessage = stringResource(R.string.notifications_disabled_snackbar)
+
     Box(modifier = modifier.fillMaxSize()) {
-        // El aurora va a sangre, por debajo de las barras del sistema: es fondo, no contenido.
         AuroraBackground(hazeState = hazeState, modifier = Modifier.fillMaxSize())
 
-        // El contenido sí respeta los insets. Sin esto, `enableEdgeToEdge()` deja el header
-        // pisado por la barra de estado — no se nota en el emulador, sí en un teléfono real.
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -113,7 +87,16 @@ fun PromosScreen(
         ) {
             Header(
                 hazeState = hazeState,
-                onAlertsClick = { onEvent(PromosEvent.OnAlertsOpen) },
+                notificationsEnabled = notificationsEnabled,
+                onNotificationsToggle = { enabled ->
+                    if (enabled) notificationPermission.requestOnce()
+                    onEvent(PromosEvent.OnNotificationsToggle(enabled))
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            if (enabled) enabledMessage else disabledMessage,
+                        )
+                    }
+                },
                 modifier = Modifier.padding(horizontal = Dimens.ScreenPadding, vertical = 8.dp),
             )
 
@@ -189,7 +172,7 @@ fun PromosScreen(
                                         items = state.promos,
                                         key = { _, promo -> promo.promo.id },
                                     ) { index, promo ->
-                                        FadeUpItem(delayMillis = Motion.staggerDelay(index, reduceMotion)) {
+                                        val card: @Composable () -> Unit = {
                                             PromoCard(
                                                 promo = promo,
                                                 isExpanded = state.expandedId == promo.promo.id,
@@ -197,23 +180,16 @@ fun PromosScreen(
                                                 onToggleExpand = {
                                                     onEvent(PromosEvent.OnCardToggle(promo.promo.id))
                                                 },
-                                                onToggleFollow = {
-                                                    val followed = !promo.isFollowed
-                                                    // Marcar una oferta es el momento en que
-                                                    // el permiso tiene un motivo entendible.
-                                                    // Si lo niega, el seguimiento se guarda
-                                                    // igual y no se vuelve a preguntar.
-                                                    if (followed) notificationPermission.requestOnce()
-                                                    onEvent(
-                                                        PromosEvent.OnFollowToggle(
-                                                            id = promo.promo.id,
-                                                            followed = followed,
-                                                        ),
-                                                    )
-                                                },
                                                 onClaim = { onEvent(PromosEvent.OnClaim(promo)) },
                                                 remainingSeconds = promo.remainingSecondsOrNull(),
                                             )
+                                        }
+                                        if (index <= Motion.StaggerItemLimit) {
+                                            FadeUpItem(delayMillis = Motion.staggerDelay(index, reduceMotion)) {
+                                                card()
+                                            }
+                                        } else {
+                                            card()
                                         }
                                     }
                                 }
@@ -226,13 +202,13 @@ fun PromosScreen(
             }
         }
 
-        if (state is PromosUiState.Content) {
-            AlertsDestination(
-                state = state.alerts,
-                onDismiss = { onEvent(PromosEvent.OnAlertsDismiss) },
-                onUnfollow = { id -> onEvent(PromosEvent.OnFollowToggle(id = id, followed = false)) },
-            )
-        }
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .safeDrawingPadding()
+                .padding(Dimens.ScreenPadding),
+        )
     }
 }
 
@@ -240,14 +216,6 @@ private fun LazyGridScope.fullWidthItem(content: @Composable () -> Unit) {
     item(span = { GridItemSpan(maxLineSpan) }) { content() }
 }
 
-/**
- * Segundos que faltan para el vencimiento, solo para ofertas urgentes.
- *
- * Se resuelve acá y no dentro de la tarjeta a propósito: el ViewModel reemite el estado cada
- * segundo mientras haya al menos una oferta urgente, así que este `Instant.now()` se refresca
- * con ese único tick en vez de con un ticker por tarjeta visible. Nunca devuelve negativos:
- * el countdown se queda en cero cuando la fecha ya pasó.
- */
 private fun PromoUiModel.remainingSecondsOrNull(): Long? {
     if (state != ExpirationState.URGENT) return null
     val expiresAt = promo.expiresAt ?: return null
@@ -267,7 +235,6 @@ private fun fakePromo(id: Long, company: String, title: String, permanent: Boole
     state = if (permanent) ExpirationState.PERMANENT else ExpirationState.WARNING,
     timeRemainingPercent = if (permanent) null else 40f,
     expirationLabel = if (permanent) "Siempre disponible" else "Expira en 10 días",
-    isFollowed = false,
     isClaimed = false,
 )
 
@@ -289,6 +256,7 @@ private fun PromosScreenContentPreview() {
                 isRefreshing = false,
                 isStale = false,
             ),
+            notificationsEnabled = true,
             onEvent = {},
         )
     }
@@ -298,7 +266,7 @@ private fun PromosScreenContentPreview() {
 @Composable
 private fun PromosScreenLoadingPreview() {
     AppTheme {
-        PromosScreen(state = PromosUiState.Loading, onEvent = {})
+        PromosScreen(state = PromosUiState.Loading, notificationsEnabled = false, onEvent = {})
     }
 }
 
@@ -310,6 +278,7 @@ private fun PromosScreenErrorPreview() {
             state = PromosUiState.Error(
                 ErrorKind.MissingConfig(missingKeys = listOf("SUPABASE_URL", "SUPABASE_ANON_KEY")),
             ),
+            notificationsEnabled = false,
             onEvent = {},
         )
     }
@@ -329,6 +298,7 @@ private fun PromosScreenEmptyPreview() {
                 isRefreshing = false,
                 isStale = false,
             ),
+            notificationsEnabled = false,
             onEvent = {},
         )
     }
