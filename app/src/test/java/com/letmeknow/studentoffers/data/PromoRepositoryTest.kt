@@ -24,12 +24,6 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
-/**
- * Contrato de error de DATA_AND_API.md, extremo a extremo contra un servidor real.
- *
- * Los cuatro casos de fallo tienen que producir su `ErrorKind` exacto y **ninguno** puede
- * lanzar: `refresh()` siempre devuelve un `Result`.
- */
 class PromoRepositoryTest {
 
     private lateinit var server: MockWebServer
@@ -47,7 +41,6 @@ class PromoRepositoryTest {
         val json = Json { ignoreUnknownKeys = true }
         val client = OkHttpClient.Builder()
             .addInterceptor(SupabaseAuthInterceptor(anonKey))
-            // Timeouts cortos: el caso de timeout tiene que ser un test rápido, no una espera.
             .connectTimeout(500, TimeUnit.MILLISECONDS)
             .readTimeout(500, TimeUnit.MILLISECONDS)
             .build()
@@ -72,8 +65,6 @@ class PromoRepositoryTest {
     private fun Result<Unit>.errorKind(): ErrorKind =
         requireNotNull(exceptionOrNull()) { "Se esperaba un Result fallido" }.toErrorKind()
 
-    // --- 200 OK -------------------------------------------------------------------------
-
     @Test
     fun `200 OK cachea las ofertas y las emite por el Flow`() = runTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody(OK_BODY))
@@ -91,7 +82,6 @@ class PromoRepositoryTest {
         assertEquals(Instant.parse("2026-01-10T00:00:00Z"), copilot.createdAt)
         assertEquals(Instant.parse("2027-03-15T00:00:00Z"), copilot.expiresAt)
 
-        // expires_at nulo llega al dominio como oferta permanente.
         assertEquals(null, cached.first { it.id == 2L }.expiresAt)
     }
 
@@ -107,8 +97,6 @@ class PromoRepositoryTest {
         assertEquals("Bearer $anonKey", request.getHeader("Authorization"))
         assertEquals(anonKey, request.getHeader("apikey"))
     }
-
-    // --- Contrato de error --------------------------------------------------------------
 
     @Test
     fun `success false es MalformedPayload`() = runTest {
@@ -180,8 +168,6 @@ class PromoRepositoryTest {
         assertEquals(ErrorKind.Network, repository.refresh().errorKind())
     }
 
-    // --- Caché offline ------------------------------------------------------------------
-
     @Test
     fun `un refresh fallido deja el cache intacto`() = runTest {
         val previo = promo(id = 99, company = "Notion")
@@ -201,21 +187,7 @@ class PromoRepositoryTest {
         server.enqueue(MockResponse().setResponseCode(200).setBody(OK_BODY))
         repository.refresh()
 
-        // La oferta 99 ya no está en el backend, así que tampoco puede quedar en el caché.
         assertEquals(setOf(1L, 2L), repository.promos.first().map { it.id }.toSet())
-    }
-
-    // --- Preferencias -------------------------------------------------------------------
-
-    @Test
-    fun `seguir y dejar de seguir se refleja en el Flow`() = runTest {
-        assertEquals(emptySet<Long>(), repository.followedIds.first())
-
-        repository.setFollowed(7L, followed = true)
-        assertEquals(setOf(7L), repository.followedIds.first())
-
-        repository.setFollowed(7L, followed = false)
-        assertEquals(emptySet<Long>(), repository.followedIds.first())
     }
 
     @Test
