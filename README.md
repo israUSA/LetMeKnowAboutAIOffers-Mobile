@@ -1,5 +1,7 @@
 # LetMeKnowAboutAIOffers — Mobile (Kotlin)
 
+**[Descargar el APK (última versión)](https://github.com/israUSA/LetMeKnowAboutAIOffers-Mobile/releases/latest)**
+
 Este directorio es un proyecto nuevo y separado: la app móvil en Kotlin equivalente a la web `LetMeKnowAboutAIOffers`.
 
 **Web de referencia:** `C:\Users\Lenovo\Desktop\Claude Projects\LetMeKnowAboutAIOffers - web` (React 19 + TypeScript + Tailwind v4 + Vite, consume Supabase). El estado completo y actual del diseño vive en la rama `push-changes` de ese repo (commit `72fa96c`), que a la fecha de escribir esto está en un Pull Request abierto hacia `main`. Si ya se mergeó, `main` es la fuente de verdad; si no, usa `push-changes`.
