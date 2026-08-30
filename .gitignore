@@ -6,6 +6,15 @@ secrets.properties
 *.keystore
 google-services.json
 
+# --- Docs internos de construcción con agentes de IA (no publicos) ---
+AGENTS.md
+CLAUDE.md
+CHANGELOG_REBRANDING.md
+DATA_AND_API.md
+DESIGN_SYSTEM.md
+PRODUCT_OVERVIEW.md
+improve-features.md
+
 # --- Build ---
 *.iml
 .gradle/
