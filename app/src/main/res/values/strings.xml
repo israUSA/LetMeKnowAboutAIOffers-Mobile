@@ -8,12 +8,16 @@
          a propósito para el launcher y no representa el wordmark completo. -->
     <string name="wordmark_brand">LetMeKnow</string>
     <string name="wordmark_rest">AboutStudentOffers</string>
-    <string name="alerts_button_description">Avisos</string>
+    <!-- La campana del header es el interruptor global de avisos. El estado va aparte del
+         nombre porque se anuncia como stateDescription, no como parte de la etiqueta. -->
+    <string name="alerts_button_description">Avisos de ofertas nuevas</string>
+    <string name="alerts_button_state_on">Activados</string>
+    <string name="alerts_button_state_off">Desactivados</string>
 
     <!-- Hero -->
     <!-- Entrecomillado a propósito: sin las comillas, aapt recorta el espacio final y el
          título queda pegado como "Ofertas de IAverificadas". -->
-    <string name="hero_title_prefix">"Ofertas de IA "</string>
+    <string name="hero_title_prefix">"Ofertas Tech "</string>
     <string name="hero_title_gradient">verificadas</string>
     <string name="hero_subtitle">Herramientas, créditos y recursos gratuitos para estudiantes, todo en un solo lugar.</string>
     <string name="search_field_placeholder">Buscar por empresa u oferta…</string>
@@ -29,29 +33,24 @@
 
     <!-- Estado de error -->
     <string name="error_missing_config_title">Falta configuración</string>
-    <string name="error_missing_config_body">Faltan estas claves en local.properties: %1$s. Agregalas y volvé a compilar la app.</string>
+    <string name="error_missing_config_body">Faltan estas claves en local.properties: %1$s. Agrégalas y vuelve a compilar la app.</string>
     <string name="error_network_title">Sin conexión</string>
-    <string name="error_network_body">No pudimos conectarnos a internet. Revisá tu conexión e intentá de nuevo.</string>
+    <string name="error_network_body">No pudimos conectarnos a internet. Revisa tu conexión e intenta de nuevo.</string>
     <string name="error_http_title">El servidor no respondió bien</string>
-    <string name="error_http_body">Recibimos un error del servidor (código %1$d). Probá de nuevo en unos minutos.</string>
+    <string name="error_http_body">Recibimos un error del servidor (código %1$d). Intenta de nuevo en unos minutos.</string>
     <string name="error_malformed_title">Respuesta inesperada</string>
-    <string name="error_malformed_body">Los datos que llegaron no tienen el formato esperado. Probá de nuevo más tarde.</string>
+    <string name="error_malformed_body">Los datos que llegaron no tienen el formato esperado. Intenta de nuevo más tarde.</string>
     <string name="error_retry">Reintentar</string>
 
     <!-- Estado vacío -->
     <string name="empty_state_title">Sin resultados</string>
-    <string name="empty_state_body">No encontramos ofertas para esta búsqueda o filtro. Probá con otro término o cambiá de tab.</string>
+    <string name="empty_state_body">No encontramos ofertas para esta búsqueda o filtro. Prueba con otro término o cambia de tab.</string>
 
     <!-- Canales de notificación -->
-    <string name="channel_claim_reminders_name">Recordatorios de reclamo</string>
-    <string name="channel_claim_reminders_description">Avisos de que una oferta que seguís está por vencer y todavía no la reclamaste.</string>
     <string name="channel_new_promos_name">Ofertas nuevas</string>
     <string name="channel_new_promos_description">Avisos cuando aparecen ofertas que no estaban la última vez que miramos.</string>
 
     <!-- Notificaciones -->
-    <string name="notification_claim_reminder_title">Tu oferta de %1$s está por vencer</string>
-    <string name="notification_claim_reminder_three_days">Quedan 3 días para reclamar «%1$s».</string>
-    <string name="notification_claim_reminder_one_day">Último día para reclamar «%1$s».</string>
     <string name="notification_new_promos_title">Ofertas nuevas</string>
     <string name="notification_new_promos_single">%1$s sumó una oferta: «%2$s».</string>
     <plurals name="notification_new_promos_body">
@@ -59,18 +58,10 @@
         <item quantity="other">Hay %d ofertas nuevas en el catálogo.</item>
     </plurals>
 
-    <!-- Avisos (bottom sheet) -->
-    <string name="alerts_sheet_title">Tus avisos</string>
-    <string name="alerts_sheet_subtitle">Te avisamos 3 días y 1 día antes de que venza cada oferta que sigas.</string>
-    <string name="alerts_empty_title">Todavía no seguís ninguna oferta</string>
-    <string name="alerts_empty_body">Tocá la campana de una tarjeta para que te avisemos antes de que venza.</string>
-    <string name="alerts_unfollow">Dejar de seguir «%1$s»</string>
-    <string name="alerts_status_claimed">Reclamada</string>
-    <string name="alerts_status_pending">Sin reclamar</string>
-    <string name="alerts_permission_title">Los avisos están desactivados</string>
-    <string name="alerts_permission_body">Seguimos guardando las ofertas que marcás, pero sin permiso de notificaciones no podemos avisarte.</string>
-    <string name="alerts_permission_action">Activar avisos</string>
+    <!-- Confirmación del interruptor de avisos -->
+    <string name="notifications_enabled_snackbar">Te avisaremos de nuevas ofertas</string>
+    <string name="notifications_disabled_snackbar">Notificaciones desactivadas</string>
 
     <!-- Footer -->
-    <string name="footer_disclaimer">Las ofertas pueden cambiar sin aviso. Verificá siempre los detalles en el sitio oficial de cada empresa.</string>
+    <string name="footer_disclaimer">Las ofertas pueden cambiar sin aviso. Verifica siempre los detalles en el sitio oficial de cada empresa.</string>
 </resources>

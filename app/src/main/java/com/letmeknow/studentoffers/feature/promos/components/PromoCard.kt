@@ -24,10 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.NotificationsActive
-import androidx.compose.material.icons.rounded.NotificationsNone
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -72,38 +69,17 @@ private const val ExpandActionLabel = "Ver la descripción completa"
 private const val CollapseActionLabel = "Ocultar la descripción"
 private const val ExpandedStateDescription = "Expandida"
 private const val CollapsedStateDescription = "Colapsada"
-private const val FollowContentDescription = "Avisarme de esta oferta"
-private const val FollowingStateDescription = "Siguiendo"
-private const val NotFollowingStateDescription = "No seguida"
 private const val ClaimText = "Reclamar"
 private const val ClaimActionLabel = "Abrir la oferta en el navegador"
 
-/** Tamaño del ícono de enlace externo del CTA, proporcionado al texto del botón. */
 private val CtaIconSize = 18.dp
 
-/**
- * La tarjeta de oferta: la interacción central de la app.
- *
- * **Es stateless a propósito.** DESIGN_SYSTEM.md exige que solo una tarjeta pueda estar
- * expandida a la vez en toda la grilla, y eso solo se garantiza con un único dueño del estado:
- * `expandedId` vive en `PromosViewModel`. Si la tarjeta recordara su propio `isExpanded`, nada
- * impediría tener dos abiertas.
- *
- * @param promo modelo ya resuelto: estado, porcentaje y texto de expiración vienen calculados.
- * @param isExpanded lo decide el dueño de la grilla comparando con `expandedId`.
- * @param hazeState el `HazeState` de la pantalla, cuyo source es el fondo aurora.
- * @param remainingSeconds segundos hasta el vencimiento, solo relevante cuando el estado es
- *   [ExpirationState.URGENT]. Lo recalcula la pantalla una vez por segundo para toda la grilla;
- *   en el resto de los estados llega `null` y la tarjeta sigue siendo skippable aunque el tick
- *   siga corriendo.
- */
 @Composable
 fun PromoCard(
     promo: PromoUiModel,
     isExpanded: Boolean,
     hazeState: HazeState,
     onToggleExpand: () -> Unit,
-    onToggleFollow: () -> Unit,
     onClaim: () -> Unit,
     modifier: Modifier = Modifier,
     remainingSeconds: Long? = null,
@@ -111,8 +87,6 @@ fun PromoCard(
     val reduceMotion = LocalReduceMotion.current
     val stateColors = promo.state.colors
 
-    // Foco visible para teclado y D-pad: el borde de vidrio se enciende con el color del estado.
-    // `clickable` ya hace focusable a la tarjeta, así que no hace falta un `focusable()` extra.
     var isFocused by remember { mutableStateOf(false) }
 
     val chevronRotation = animateFloatAsState(
@@ -136,13 +110,11 @@ fun PromoCard(
                 role = Role.Button,
                 onClick = onToggleExpand,
             )
-            // El estado se anuncia explícitamente; no alcanza con que el chevron rote.
             .semantics {
                 stateDescription =
                     if (isExpanded) ExpandedStateDescription else CollapsedStateDescription
             },
     ) {
-        // Solo las ofertas con vencimiento tienen barra de progreso.
         promo.timeRemainingPercent?.let { percent ->
             TimeProgressBar(percent = percent, state = promo.state)
         }
@@ -174,12 +146,9 @@ fun PromoCard(
                     )
                 }
 
-                FollowBell(isFollowed = promo.isFollowed, onToggleFollow = onToggleFollow)
                 ExpandChevron(rotation = chevronRotation)
             }
 
-            // Colapsada, la descripción NO existe en el árbol: no hay preview ni truncado.
-            // `AnimatedVisibility` crece en alto y hace fade-in a la vez, nunca un salto seco.
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = expandVertically(tween(expandMillis, easing = Motion.EaseInOut)) +
@@ -202,8 +171,6 @@ fun PromoCard(
                 horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // El envoltorio con `weight` es el que se estira; la pastilla conserva su ancho
-                // natural y queda pegada a la izquierda, con el CTA empujado al borde derecho.
                 Box(Modifier.weight(1f)) {
                     if (promo.state == ExpirationState.URGENT) {
                         CountdownTimer(remainingSeconds = remainingSeconds ?: 0L)
@@ -218,52 +185,6 @@ fun PromoCard(
     }
 }
 
-/**
- * Campana de seguimiento. Es un `IconToggleButton` y no un `IconButton` para que TalkBack lo
- * anuncie como conmutador; encima se le agrega el `stateDescription` explícito.
- *
- * El click no se propaga a la tarjeta: el `clickable` interno consume el evento de puntero antes
- * de que llegue al de la tarjeta, así que seguir una oferta nunca la expande.
- */
-@Composable
-private fun FollowBell(
-    isFollowed: Boolean,
-    onToggleFollow: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    IconToggleButton(
-        checked = isFollowed,
-        onCheckedChange = { onToggleFollow() },
-        modifier = modifier
-            .defaultMinSize(
-                minWidth = Dimens.MinTouchTarget,
-                minHeight = Dimens.MinTouchTarget,
-            )
-            .semantics {
-                stateDescription =
-                    if (isFollowed) FollowingStateDescription else NotFollowingStateDescription
-            },
-    ) {
-        Icon(
-            imageVector = if (isFollowed) {
-                Icons.Rounded.NotificationsActive
-            } else {
-                Icons.Rounded.NotificationsNone
-            },
-            contentDescription = FollowContentDescription,
-            tint = if (isFollowed) AppColors.Fuchsia500 else AppColors.OnBackgroundMuted,
-        )
-    }
-}
-
-/**
- * Chevron que rota 180 grados al expandir.
- *
- * No es interactivo ni accesible: la tarjeta entera ya es el botón y su `stateDescription` ya
- * anuncia expandido/colapsado. Un nodo más acá sería ruido puro para el lector de pantalla, así
- * que se limpia con `clearAndSetSemantics {}`. Mantiene igual el área de 44dp para que la fila
- * superior conserve el ritmo del resto de los controles.
- */
 @Composable
 private fun ExpandChevron(
     rotation: State<Float>,
@@ -279,13 +200,11 @@ private fun ExpandChevron(
             imageVector = Icons.Rounded.ExpandMore,
             contentDescription = null,
             tint = AppColors.OnBackgroundMuted,
-            // Lectura diferida: la rotación se resuelve en la fase de dibujo, sin recomponer.
             modifier = Modifier.graphicsLayer { rotationZ = rotation.value },
         )
     }
 }
 
-/** CTA "Reclamar" con el gradiente de marca. Tampoco propaga el click a la tarjeta. */
 @Composable
 private fun ClaimButton(
     onClaim: () -> Unit,
@@ -324,7 +243,6 @@ private fun ClaimButton(
         )
         Icon(
             imageVector = Icons.AutoMirrored.Rounded.OpenInNew,
-            // El texto del botón ya dice qué hace; el ícono no agrega información nueva.
             contentDescription = null,
             tint = AppColors.OnBackground,
             modifier = Modifier.size(CtaIconSize),
@@ -332,18 +250,11 @@ private fun ClaimButton(
     }
 }
 
-// ---------------------------------------------------------------------------------------------
-// Previews. Datos falsos: la tarjeta no depende de que data/ ni el ViewModel estén listos.
-// ---------------------------------------------------------------------------------------------
-
 private val PreviewNow: Instant = Instant.parse("2026-08-26T12:00:00Z")
 
 private const val PreviewUrgentSeconds = 3L * 24 * 60 * 60 + 4 * 60 * 60 + 7 * 60 + 33
 
-private fun previewPromo(
-    state: ExpirationState,
-    isFollowed: Boolean = false,
-): PromoUiModel {
+private fun previewPromo(state: ExpirationState): PromoUiModel {
     val (company, title, days) = when (state) {
         ExpirationState.URGENT ->
             Triple("GitHub Education", "Copilot Pro gratis para estudiantes", 3L)
@@ -367,9 +278,9 @@ private fun previewPromo(
             id = state.ordinal.toLong(),
             company = company,
             title = title,
-            description = "Verificá tu correo institucional y obtené acceso completo mientras " +
+            description = "Verifica tu correo institucional y obtén acceso completo mientras " +
                 "seas estudiante. La verificación puede tardar unos días y hay que renovarla " +
-                "cada año, así que conviene arrancar el trámite con tiempo.",
+                "cada año, así que conviene iniciar el trámite con tiempo.",
             reclaimLink = "https://example.com/oferta",
             createdAt = PreviewNow.minusSeconds(30L * 24 * 60 * 60),
             expiresAt = expiresAt,
@@ -387,15 +298,10 @@ private fun previewPromo(
             ExpirationState.COMFORTABLE -> "Expira el 24 dic 2026"
             ExpirationState.PERMANENT -> "Siempre disponible"
         },
-        isFollowed = isFollowed,
         isClaimed = false,
     )
 }
 
-/**
- * El `hazeEffect` de la tarjeta necesita un `hazeSource` detrás para tener algo que difuminar.
- * En la app ese source es el fondo aurora; acá alcanza con un panel plano del color de fondo.
- */
 @Composable
 private fun PromoCardPreviewScaffold(content: @Composable (HazeState) -> Unit) {
     AppTheme {
@@ -429,11 +335,10 @@ private fun PromoCardCollapsedPreview() {
     PromoCardPreviewScaffold { hazeState ->
         ExpirationState.entries.forEach { state ->
             PromoCard(
-                promo = previewPromo(state, isFollowed = state == ExpirationState.WARNING),
+                promo = previewPromo(state),
                 isExpanded = false,
                 hazeState = hazeState,
                 onToggleExpand = {},
-                onToggleFollow = {},
                 onClaim = {},
                 remainingSeconds = PreviewUrgentSeconds,
             )
@@ -453,11 +358,10 @@ private fun PromoCardExpandedPreview() {
     PromoCardPreviewScaffold { hazeState ->
         ExpirationState.entries.forEach { state ->
             PromoCard(
-                promo = previewPromo(state, isFollowed = state == ExpirationState.URGENT),
+                promo = previewPromo(state),
                 isExpanded = true,
                 hazeState = hazeState,
                 onToggleExpand = {},
-                onToggleFollow = {},
                 onClaim = {},
                 remainingSeconds = PreviewUrgentSeconds,
             )
@@ -477,13 +381,11 @@ private fun PromoCardUrgentPreview() {
     PromoCardPreviewScaffold { hazeState ->
         listOf(false, true).forEach { expanded ->
             PromoCard(
-                promo = previewPromo(ExpirationState.URGENT, isFollowed = expanded),
+                promo = previewPromo(ExpirationState.URGENT),
                 isExpanded = expanded,
                 hazeState = hazeState,
                 onToggleExpand = {},
-                onToggleFollow = {},
                 onClaim = {},
-                // Con `expanded` se fuerza un valor ya vencido: el countdown muestra ceros.
                 remainingSeconds = if (expanded) -120L else PreviewUrgentSeconds,
             )
         }

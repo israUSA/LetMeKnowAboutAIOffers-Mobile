@@ -8,9 +8,6 @@
          la primera vez que el usuario marca una oferta, nunca al arrancar. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- Reprograma los recordatorios de reclamo tras un reinicio del dispositivo. -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
     <!-- Necesario para abrir el link externo de "Reclamar" en el navegador. -->
     <queries>
         <intent>
@@ -39,18 +36,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Tras un reinicio WorkManager restaura sus work, pero los recordatorios se calculan
-             contra `expires_at`: si el dispositivo estuvo días apagado, el plan cambió. El
-             receiver recalcula todo con `Notifier.rescheduleAll()`. -->
-        <receiver
-            android:name=".notifications.BootReceiver"
-            android:enabled="true"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-            </intent-filter>
-        </receiver>
     </application>
 
 </manifest>
